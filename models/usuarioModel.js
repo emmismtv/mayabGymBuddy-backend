@@ -20,7 +20,7 @@ const usuarioSchema = mongoose.Schema({
         required: [true, 'Por favor teclea tu número de teléfono'],
         unique: true,
         validate: {
-            validator: function(v) {
+            validator: function (v) {
                 return v.toString().length <= 10;
             },
             message: 'El teléfono no debe tener más de 10 dígitos'
@@ -29,6 +29,14 @@ const usuarioSchema = mongoose.Schema({
     tipo: {
         type: String,
         required: [true, 'Por favor teclea el tipo de usuario (Estudiante, Coach, Egresado)']
+    },
+    password: {
+        type: String,
+        required: [true, 'Por favor teclea tu password']
+    },
+    esAdmin: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true
