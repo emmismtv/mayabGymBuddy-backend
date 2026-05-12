@@ -18,7 +18,12 @@ const loginUsuario = asyncHandler(async (req, res) => {
         throw new Error('Usuario no registrado');
     }
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (!user.esAdmin) {
+        res.status(401);
+        throw new Error('No tienes autorizado acceder a esta página.');
+    }
+
+    if (user && user.password && (await bcrypt.compare(password, user.password))) {
         res.status(200).json({
             _id: user.id,
             nombre: user.nombre,
@@ -33,9 +38,14 @@ const loginUsuario = asyncHandler(async (req, res) => {
 });
 
 const addUsuario = asyncHandler(async (req, res) => {
-    if (!req.body.nombre || !req.body.apellido || !req.body.email || !req.body.telefono || !req.body.tipo || !req.body.password || req.body.esAdmin === undefined) {
+    if (!req.body.nombre || !req.body.apellido || !req.body.email || !req.body.telefono || !req.body.tipo) {
         res.status(400);
-        throw new Error('Por favor teclea todos los campos: Nombre, Apellido, Email, Teléfono, Tipo de Usuario (Estudiante, Coach, Egresado), Password y Selecciona si es admin.');
+        throw new Error('Por favor teclea todos los campos básicos.');
+    }
+
+    if (req.body.esAdmin && !req.body.password) {
+        res.status(400);
+        throw new Error('Por favor proporciona una contraseña para el administrador.');
     }
 
     const usuarioExistente = await Usuario.findOne({ email: req.body.email });
@@ -44,8 +54,11 @@ const addUsuario = asyncHandler(async (req, res) => {
         throw new Error('El usuario ya existe con ese correo');
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+    let hashedPassword = undefined;
+    if (req.body.esAdmin && req.body.password) {
+        const salt = await bcrypt.genSalt(10);
+        hashedPassword = await bcrypt.hash(req.body.password, salt);
+    }
 
     const usuario = await Usuario.create({
         nombre: req.body.nombre,
@@ -54,7 +67,7 @@ const addUsuario = asyncHandler(async (req, res) => {
         telefono: req.body.telefono,
         tipo: req.body.tipo,
         password: hashedPassword,
-        esAdmin: req.body.esAdmin
+        esAdmin: req.body.esAdmin || false
     });
 
     if (usuario) {
@@ -74,10 +87,17 @@ const updateUsuario = asyncHandler(async (req, res) => {
     }
 
     let updateData = { ...req.body };
-    if (req.body.password) {
+    
+    if (!req.body.password) {
+        delete updateData.password;
+    }
+    
+    // Si lo hacen admin y envian password, hashearlo
+    if (req.body.esAdmin && req.body.password) {
         const salt = await bcrypt.genSalt(10);
         updateData.password = await bcrypt.hash(req.body.password, salt);
     }
+    // updateData.esAdmin ya tendrá "false" así que se actualizará.
 
     const updatedUsuario = await Usuario.findByIdAndUpdate(req.params.id, updateData, {
         new: true,

@@ -31,8 +31,7 @@ const usuarioSchema = mongoose.Schema({
         required: [true, 'Por favor teclea el tipo de usuario (Estudiante, Coach, Egresado)']
     },
     password: {
-        type: String,
-        required: [true, 'Por favor teclea tu password']
+        type: String
     },
     esAdmin: {
         type: Boolean,
